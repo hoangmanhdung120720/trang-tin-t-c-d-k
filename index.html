@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D&K</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo">D&K</div>
+
+      <nav class="menu">
+        <button data-rss="tin-moi-nhat">Mới nhất</button>
+        <button data-rss="thoi-su">Thời sự</button>
+        <button data-rss="the-thao">Thể thao</button>
+        <button data-rss="kinh-doanh">Kinh doanh</button>
+      </nav>
+
+      <div class="user-area" id="userArea"></div>
+    </header>
+
+    <main class="container" id="articles"></main>
+
+    <div id="loading">Đang tải thêm tin...</div>
+    <script src="./auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (function () {
+        if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+          window.chatbase = (...arguments) => {
+            if (!window.chatbase.q) {
+              window.chatbase.q = [];
+            }
+            window.chatbase.q.push(arguments);
+          };
+          window.chatbase = new Proxy(window.chatbase, {
+            get(target, prop) {
+              if (prop === "q") {
+                return target.q;
+              }
+              return (...args) => target(prop, ...args);
+            },
+          });
+        }
+        const onLoad = function () {
+          const script = document.createElement("script");
+          script.src = "https://www.chatbase.co/embed.min.js";
+          script.id = "LkYD4i8UQBHyNVwl8qMGy";
+          script.domain = "www.chatbase.co";
+          document.body.appendChild(script);
+        };
+        if (document.readyState === "complete") {
+          onLoad();
+        } else {
+          window.addEventListener("load", onLoad);
+        }
+      })();
+    </script>
+  </body>
+</html>
