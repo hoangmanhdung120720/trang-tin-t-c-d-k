@@ -1,32 +1,44 @@
+/* ================= DOM ================= */
 const container = document.getElementById("articles");
 const loading = document.getElementById("loading");
 const menuButtons = document.querySelectorAll(".menu button");
 
+/* ================= STATE ================= */
 let articles = [];
 let page = 0;
 const limit = 6;
-let currentRSS = "tin-moi-nhat";
+let currentRSS = "giai-tri"; // 👈 Giải trí
+let isLoading = false;
+let isEnd = false;
 
 /* ================= RSS ================= */
-
-// Lấy RSS theo chuyên mục
 function getRSSUrl(type) {
   return `https://vnexpress.net/rss/${type}.rss`;
 }
 
 async function fetchRSS(type) {
-  loading.innerText = "Đang tải...";
+  // reset state
   container.innerHTML = "";
+  loading.style.display = "block";
+  loading.innerText = "Đang tải...";
   page = 0;
-
-  const rssURL = encodeURIComponent(getRSSUrl(type));
-  const apiURL = `https://api.rss2json.com/v1/api.json?rss_url=${rssURL}`;
+  isEnd = false;
+  isLoading = false;
 
   try {
+    const rssURL = encodeURIComponent(getRSSUrl(type));
+    const apiURL = `https://api.rss2json.com/v1/api.json?rss_url=${rssURL}`;
     const res = await fetch(apiURL);
     const data = await res.json();
-    articles = data.items;
-    loadMore();
+
+    articles = data.items || [];
+
+    if (articles.length === 0) {
+      loading.innerText = "Không có tin";
+      return;
+    }
+
+    loadMore(); // load lần đầu
   } catch (err) {
     loading.innerText = "Lỗi tải dữ liệu";
     console.error(err);
@@ -34,11 +46,20 @@ async function fetchRSS(type) {
 }
 
 /* ================= LOAD MORE ================= */
-
 function loadMore() {
+  if (isLoading || isEnd) return;
+  isLoading = true;
+
   const start = page * limit;
   const end = start + limit;
   const items = articles.slice(start, end);
+
+  if (items.length === 0) {
+    isEnd = true;
+    loading.style.display = "none"; // 👈 cho footer hiện
+    isLoading = false;
+    return;
+  }
 
   items.forEach(item => {
     const div = document.createElement("div");
@@ -48,16 +69,13 @@ function loadMore() {
       ${getImage(item)}
       <div class="article-content">
         <h3>
-          <a href="detail.html" class="article-link">
-            ${item.title}
-          </a>
+          <a href="detail.html" class="article-link">${item.title}</a>
         </h3>
         <p>${stripHTML(item.description).slice(0, 140)}...</p>
         <span>${item.pubDate}</span>
       </div>
     `;
 
-    // Click → lưu tin → sang detail.html
     div.querySelector(".article-link").addEventListener("click", () => {
       saveNews(item);
     });
@@ -66,21 +84,21 @@ function loadMore() {
   });
 
   page++;
-  if (page * limit >= articles.length) {
-    loading.innerText = "Hết tin";
-  }
+  isLoading = false;
 }
 
-/* ================= INFINITE SCROLL ================= */
-
+/* ================= SCROLL ================= */
 window.addEventListener("scroll", () => {
-  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+  if (
+    !isEnd &&
+    window.innerHeight + window.scrollY >=
+      document.body.offsetHeight - 150
+  ) {
     loadMore();
   }
 });
 
 /* ================= MENU ================= */
-
 menuButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     currentRSS = btn.dataset.rss;
@@ -89,15 +107,12 @@ menuButtons.forEach(btn => {
 });
 
 /* ================= UTIL ================= */
-
-// Xóa HTML tag
 function stripHTML(html) {
   const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || div.innerText || "";
+  div.innerHTML = html || "";
+  return div.textContent || "";
 }
 
-// Lấy ảnh (chuẩn RSS VnExpress)
 function getImage(item) {
   if (item.thumbnail) {
     return `<img src="${item.thumbnail}" loading="lazy">`;
@@ -111,24 +126,22 @@ function getImage(item) {
   return "";
 }
 
-// Lưu tin sang localStorage
 function saveNews(item) {
   localStorage.setItem(
     "currentNews",
     JSON.stringify({
       title: item.title,
-      content: item.description, // giữ HTML
+      content: item.description,
       date: item.pubDate,
-      link: item.link            // 👈 THÊM DÒNG NÀY
+      link: item.link
     })
   );
 }
 
-
-
 /* ================= INIT ================= */
-
 fetchRSS(currentRSS);
+
+/* ================= USER ================= */
 const userArea = document.getElementById("userArea");
 const user = JSON.parse(localStorage.getItem("currentUser"));
 
